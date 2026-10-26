@@ -1,4 +1,5 @@
 import { icon } from "./icons.js";
+import { dayKey } from "./time.js";
 import {
   TASKS_KEY,
   TASK_TITLE_LIMIT,
@@ -8,6 +9,9 @@ import {
   addTask,
   setTaskCompleted,
   removeTask,
+  setTaskDueDate,
+  taskDueLabel,
+  taskDueStatus,
 } from "./tasks.js";
 
 export function mountTasks(container) {
@@ -17,8 +21,9 @@ export function mountTasks(container) {
       <span class="tasks-heading-icon" aria-hidden="true">${icon("checklist")}</span>
     </div>
     <form class="task-form" id="task-form">
-      <div class="task-input-wrap"><label class="sr-only" for="task-title">Task title</label><input id="task-title" name="title" type="text" placeholder="What would you like to work on?" maxlength="${TASK_TITLE_LIMIT}" required autocomplete="off" /></div>
-      <div class="task-term-wrap"><label class="sr-only" for="task-term">Task category</label><select id="task-term" name="term"><option value="short">Short-term</option><option value="long">Long-term</option></select></div>
+      <div class="task-input-wrap"><label for="task-title">Task title</label><input id="task-title" name="title" type="text" placeholder="What would you like to work on?" maxlength="${TASK_TITLE_LIMIT}" required autocomplete="off" /></div>
+      <div class="task-term-wrap"><label for="task-term">Task category</label><select id="task-term" name="term"><option value="short">Short-term</option><option value="long">Long-term</option></select></div>
+      <div class="task-date-wrap"><label for="task-due-date">Due date <span>(optional)</span></label><input id="task-due-date" name="dueDate" type="date" min="0001-01-01" max="9999-12-31" /></div>
       <button class="add-task-button" type="submit">${icon("plus")}<span>Add task</span></button>
     </form>
     <p class="task-error" role="alert" hidden></p>
@@ -31,10 +36,58 @@ export function mountTasks(container) {
   const form = container.querySelector("form");
   const input = container.querySelector("#task-title");
   const term = container.querySelector("#task-term");
+  const newDueDate = container.querySelector("#task-due-date");
   const error = container.querySelector(".task-error");
   let state = emptyTasks();
   let healthy = true;
   let busy = false;
+  let editingTaskId = null;
+  let dueDraft = "";
+
+  function dueButton(task) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `task-due-toggle due-${taskDueStatus(task)}`;
+    button.setAttribute("aria-label", `Set due date for: ${task.title}`);
+    button.setAttribute("aria-description", taskDueLabel(task));
+    button.setAttribute("aria-expanded", String(editingTaskId === task.id));
+    button.innerHTML = icon("calendar");
+    const text = document.createElement("span");
+    text.textContent = taskDueLabel(task);
+    button.append(text);
+    return button;
+  }
+
+  function dueEditor(task) {
+    const editor = document.createElement("form");
+    editor.className = "task-due-form";
+    editor.setAttribute("aria-label", `Change due date for: ${task.title}`);
+    const label = document.createElement("label");
+    label.textContent = "Due date";
+    const field = document.createElement("input");
+    field.type = "date";
+    field.className = "task-due-input";
+    field.min = "0001-01-01";
+    field.max = "9999-12-31";
+    field.value = dueDraft;
+    field.setAttribute("aria-label", `Due date for: ${task.title}`);
+    label.append(field);
+    const actions = document.createElement("div");
+    actions.className = "task-date-actions";
+    for (const [text, className, type] of [
+      ["Save", "save-task-date", "submit"],
+      ["Cancel", "cancel-task-date", "button"],
+      ...(task.dueDate ? [["Remove date", "clear-task-date", "button"]] : []),
+    ]) {
+      const button = document.createElement("button");
+      button.type = type;
+      button.className = className;
+      button.textContent = text;
+      actions.append(button);
+    }
+    editor.append(label, actions);
+    return editor;
+  }
 
   function updateControls() {
     for (const control of container.querySelectorAll("input, select, button")) {
@@ -53,12 +106,22 @@ export function mountTasks(container) {
   function taskFocus() {
     const focused = document.activeElement;
     const id = focused?.closest("[data-task-id]")?.dataset.taskId;
-    return id
-      ? { id, action: focused.matches("input") ? "input" : "button" }
-      : null;
+    if (!id) return null;
+    const action = focused.matches(".task-due-input")
+      ? ".task-due-input"
+      : focused.closest(".task-due-form")
+        ? ".task-due-toggle"
+        : focused.matches('input[type="checkbox"]')
+          ? 'input[type="checkbox"]'
+          : focused.matches(".task-due-toggle")
+            ? ".task-due-toggle"
+            : ".delete-task";
+    return { id, action };
   }
 
   function render(focus = taskFocus()) {
+    if (editingTaskId && !state.tasks.some((task) => task.id === editingTaskId))
+      editingTaskId = null;
     for (const category of ["long", "short"]) {
       const tasks = state.tasks.filter((task) => task.term === category);
       const list = container.querySelector(`#${category}-term-tasks`);
@@ -81,7 +144,11 @@ export function mountTasks(container) {
         button.className = "delete-task";
         button.setAttribute("aria-label", `Delete task: ${task.title}`);
         button.innerHTML = icon("trash");
-        row.append(label, button);
+        const body = document.createElement("div");
+        body.className = "task-body";
+        body.append(label, dueButton(task));
+        if (editingTaskId === task.id) body.append(dueEditor(task));
+        row.append(body, button);
         fragment.append(row);
       }
       list.replaceChildren(fragment);
@@ -137,10 +204,35 @@ export function mountTasks(container) {
     }
     const title = input.value;
     const category = term.value;
-    if (await mutate((fresh) => addTask(fresh, title, category))) {
+    const dueDate = newDueDate.value || null;
+    if (
+      await mutate((fresh) =>
+        addTask(fresh, title, category, undefined, undefined, dueDate),
+      )
+    ) {
       input.value = "";
+      newDueDate.value = "";
       input.focus({ preventScroll: true });
     }
+  });
+  container.addEventListener("input", (event) => {
+    if (event.target.matches(".task-due-input")) dueDraft = event.target.value;
+  });
+  async function saveDueDate(id, dueDate) {
+    if (await mutate((fresh) => setTaskDueDate(fresh, id, dueDate))) {
+      editingTaskId = null;
+      dueDraft = "";
+      render({ id, action: ".task-due-toggle" });
+    }
+  }
+  container.addEventListener("submit", (event) => {
+    if (!event.target.matches(".task-due-form")) return;
+    event.preventDefault();
+    const id = event.target.closest("[data-task-id]").dataset.taskId;
+    saveDueDate(
+      id,
+      event.target.querySelector(".task-due-input").value || null,
+    );
   });
   container.addEventListener("change", (event) => {
     if (!event.target.matches('.task-item input[type="checkbox"]')) return;
@@ -149,6 +241,27 @@ export function mountTasks(container) {
     mutate((fresh) => setTaskCompleted(fresh, id, completed));
   });
   container.addEventListener("click", (event) => {
+    const toggle = event.target.closest(".task-due-toggle");
+    if (toggle) {
+      const id = toggle.closest("[data-task-id]").dataset.taskId;
+      editingTaskId = editingTaskId === id ? null : id;
+      dueDraft = state.tasks.find((task) => task.id === id)?.dueDate ?? "";
+      render({
+        id,
+        action: editingTaskId ? ".task-due-input" : ".task-due-toggle",
+      });
+      return;
+    }
+    if (event.target.closest(".cancel-task-date")) {
+      const id = editingTaskId;
+      editingTaskId = null;
+      render({ id, action: ".task-due-toggle" });
+      return;
+    }
+    if (event.target.closest(".clear-task-date")) {
+      saveDueDate(editingTaskId, null);
+      return;
+    }
     const button = event.target.closest(".delete-task");
     if (!button) return;
     const id = button.closest("[data-task-id]").dataset.taskId;
@@ -169,4 +282,18 @@ export function mountTasks(container) {
     if (!document.hidden) refresh();
   });
   refresh();
+  let today = dayKey(Date.now());
+  setInterval(() => {
+    const next = dayKey(Date.now());
+    if (next === today) return;
+    today = next;
+    for (const row of container.querySelectorAll("[data-task-id]")) {
+      const task = state.tasks.find((task) => task.id === row.dataset.taskId);
+      if (!task) continue;
+      const button = row.querySelector(".task-due-toggle");
+      button.className = `task-due-toggle due-${taskDueStatus(task)}`;
+      button.querySelector("span").textContent = taskDueLabel(task);
+      button.setAttribute("aria-description", taskDueLabel(task));
+    }
+  }, 1000);
 }
