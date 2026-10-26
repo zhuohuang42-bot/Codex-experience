@@ -1,44 +1,33 @@
-# 拾光 · 学习时间记录
+# Study Journal
 
-一个安静、轻量的中文学习计时网站。点击「开始学习」开始计时，点击「停止并保存」记录本次学习。在日历中选择日期，即可查看当天累计时长及每次专注明细。
+A calm, English-language website for study time and task planning.
 
-## 本地运行
+- Start a study timer, then **Stop & save** to record a session.
+- Browse the calendar to see daily totals and individual sessions.
+- Add **Long-term** goals and **Short-term** tasks, check them off, reopen them, or delete them.
+- Progress is saved automatically in the current browser. Existing study history from the original version is preserved.
 
-需要 Node.js 22.12+（也支持 Node.js 20.19+）。
+## Development
+
+Requires Node.js 22.12+ (Node.js 20.19+ is also supported).
 
 ```sh
 npm ci
 npm run dev
 ```
 
-开发服务默认使用 5173 端口。生产构建运行 `npm run build`，输出在 `dist/`，可以部署到支持静态网站的托管服务；`npm run preview` 用于本地检查构建结果。
+The development server uses port 5173. `npm run build` produces a static site in `dist/`; `npm run preview` serves that build locally. If the default npm cache is not writable in the cloud environment, use `npm ci --cache /workspace/.cache/npm`.
 
-## 发布到 GitHub Pages
+## How your data works
 
-仓库已包含 `.github/workflows/deploy-pages.yml`，推送到 `main` 后会自动测试、构建并发布网站。
+- A running timer tracks real elapsed time even after switching tabs, refreshing, or closing the page. Click **Stop & save** when you finish studying.
+- Sessions crossing midnight are split across local calendar dates, including daylight-saving changes. Calendar colors represent less than 30 minutes, 30–59 minutes, 1–2 hours, and 2+ hours of study.
+- Task titles can contain up to 200 characters. Both task lists support completion, reopening, and deletion. Multiple tabs in the same browser synchronize changes.
+- Study history and tasks are stored separately in local storage, so adding tasks does not replace existing study records. The original study storage key remains unchanged for compatibility.
+- Data stays in this browser; it does not sync across devices or browsers. Clearing site data or ending a private browsing session may remove it.
+- **Export records** downloads daily study totals as a CSV for spreadsheets. Task lists are stored locally and are not included in this study-time export.
 
-首次发布需要在 GitHub 仓库的 **Settings → Pages → Build and deployment → Source** 中选择 **GitHub Actions**。这一步启用网站托管；Codex 中的「发布环境」用于保存开发环境，与网站上线是两个操作。
-
-启用后，在 **Actions** 中确认 `Deploy study journal to GitHub Pages` 运行成功；若首次运行因 Pages 尚未启用而失败，启用后重新运行该工作流即可。实际访问网址以部署结果显示的地址为准。
-
-构建资源使用相对路径，因此支持 GitHub Pages 的 `/Codex-experience/` 子目录。发布不需要给项目添加任何个人访问令牌或密钥。
-
-云环境如果默认 npm 缓存目录不可写，可以使用：
-
-```sh
-npm ci --cache /workspace/.cache/npm
-```
-
-## 使用说明
-
-- 开始后按真实经过的时间计时，切换标签页、刷新或关闭页面后仍会继续；结束学习时请点击「停止并保存」。
-- 每次结束后的记录会自动累加；跨午夜的学习会按浏览器所在时区分配到对应日期。
-- 日历颜色代表当天学习总时长：不足 30 分钟、30–59 分钟、1–2 小时、2 小时及以上。
-- 数据仅存在当前浏览器的本地存储中，不上传服务器，也不会自动跨浏览器或跨设备同步。清除网站数据或无痕模式结束可能删除记录。
-- 「导出记录」可下载每天累计时长的 CSV 表格，方便在 Excel 等软件中查看、留存。
-- 同一浏览器的多个标签页共享一个计时器；在任一标签页停止会更新其余标签页。
-
-## 验证
+## Validation
 
 ```sh
 npm test
@@ -47,10 +36,18 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-如果系统已经安装 Chromium，可以跳过浏览器下载：
+If Chromium is already installed, skip the download and run:
 
 ```sh
 CHROMIUM_PATH=/usr/bin/chromium npm run test:e2e
 ```
 
-单元测试覆盖跨午夜、夏令时、时长统计与存储校验；浏览器测试覆盖计时、刷新恢复、日历、CSV 导出、多标签页同步、存储错误和手机布局。
+Tests cover timer restoration, midnight and daylight-saving transitions, storage validation, English labels, both task categories, task persistence, compatibility with existing study records, concurrent tabs, safe text rendering, storage failures, exports, and mobile layouts.
+
+## GitHub Pages
+
+The workflow in `.github/workflows/deploy-pages.yml` tests, builds and deploys pushes to `main`. In repository **Settings → Pages → Build and deployment → Source**, select **GitHub Actions**. Relative asset URLs support the `/Codex-experience/` project path.
+
+Live site: <https://zhuohuang42-bot.github.io/Codex-experience/>
+
+Publishing the Codex development environment saves that environment; GitHub Pages publishes the actual website. No personal access token needs to be added to this project.

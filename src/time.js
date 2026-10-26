@@ -64,12 +64,13 @@ export function formatClock(milliseconds) {
 
 export function formatDuration(milliseconds, short = false) {
   const seconds = Math.max(0, Math.floor(milliseconds / 1000));
-  if (seconds < 60) return short ? (seconds ? "<1分" : "0分") : `${seconds} 秒`;
+  if (seconds < 60)
+    return short ? (milliseconds > 0 ? "<1m" : "0m") : `${seconds} sec`;
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
   const remainder = minutes % 60;
-  if (!hours) return `${minutes}${short ? "分" : " 分钟"}`;
-  return `${hours}${short ? "时" : " 小时"}${remainder ? `${short ? "" : " "}${remainder}${short ? "分" : " 分钟"}` : ""}`;
+  if (!hours) return `${minutes}${short ? "m" : " min"}`;
+  return `${hours}${short ? "h" : " hr"}${remainder ? `${short ? "" : " "}${remainder}${short ? "m" : " min"}` : ""}`;
 }
 
 export function weekStart(value) {

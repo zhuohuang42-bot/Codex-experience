@@ -7,7 +7,7 @@ export default defineConfig({
   use: {
     baseURL: "http://127.0.0.1:4173",
     timezoneId: "Asia/Shanghai",
-    locale: "zh-CN",
+    locale: "en-US",
     launchOptions: process.env.CHROMIUM_PATH
       ? { executablePath: process.env.CHROMIUM_PATH }
       : {},

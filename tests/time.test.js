@@ -16,8 +16,8 @@ test("timer formatting supports durations exceeding a day and clamps negative va
   assert.equal(formatClock(3_661_000), "01:01:01");
   assert.equal(formatClock(90_061_000), "25:01:01");
   assert.equal(formatClock(-1000), "00:00:00");
-  assert.equal(formatDuration(5400000), "1 小时 30 分钟");
-  assert.equal(formatDuration(45000, true), "<1分");
+  assert.equal(formatDuration(5400000), "1 hr 30 min");
+  assert.equal(formatDuration(45000, true), "<1m");
 });
 
 test("splits a midnight session into exact local-day durations", () => {

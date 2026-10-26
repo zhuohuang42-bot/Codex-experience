@@ -13,33 +13,41 @@ test("start, stop, accumulate, and retain records after reload", async ({
 }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "把时间，留给成长。",
+    "Make time for growth.",
   );
-  await page.getByRole("button", { name: "开始学习", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Start studying", exact: true })
+    .click();
   await expect(
-    page.getByRole("button", { name: "停止并保存学习记录" }),
+    page.getByRole("button", { name: "Stop and save study session" }),
   ).toBeEnabled();
   await page.clock.fastForward(65000);
   await expect(page.getByRole("timer")).toHaveText("00:01:05");
-  await page.getByRole("button", { name: "停止并保存学习记录" }).click();
+  await page
+    .getByRole("button", { name: "Stop and save study session" })
+    .click();
   await expect(page.locator("#day-summary")).toHaveText(
-    "1 次专注 · 共学习 1 分钟",
+    "1 session · 1 min studied",
   );
   await expect(page.locator(".session-row")).toHaveCount(1);
-  await expect(page.locator("#stat-today")).toHaveText("1 分钟");
-  await expect(page.locator('[data-day="2026-10-26"]')).toContainText("1分");
-  await page.getByRole("button", { name: "开始学习", exact: true }).click();
+  await expect(page.locator("#stat-today")).toHaveText("1 min");
+  await expect(page.locator('[data-day="2026-10-26"]')).toContainText("1m");
+  await page
+    .getByRole("button", { name: "Start studying", exact: true })
+    .click();
   await expect(
-    page.getByRole("button", { name: "停止并保存学习记录" }),
+    page.getByRole("button", { name: "Stop and save study session" }),
   ).toBeEnabled();
   await page.clock.fastForward(60000);
-  await page.getByRole("button", { name: "停止并保存学习记录" }).click();
+  await page
+    .getByRole("button", { name: "Stop and save study session" })
+    .click();
   await expect(page.locator("#day-summary")).toHaveText(
-    "2 次专注 · 共学习 2 分钟",
+    "2 sessions · 2 min studied",
   );
   await page.reload();
   await expect(page.locator(".session-row")).toHaveCount(2);
-  await expect(page.locator("#stat-today")).toHaveText("2 分钟");
+  await expect(page.locator("#stat-today")).toHaveText("2 min");
   await expect(page.getByRole("timer")).toHaveText("00:00:00");
 });
 
@@ -47,18 +55,22 @@ test("running timer survives reload and keeps counting real elapsed time", async
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "开始学习", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Start studying", exact: true })
+    .click();
   await expect(
-    page.getByRole("button", { name: "停止并保存学习记录" }),
+    page.getByRole("button", { name: "Stop and save study session" }),
   ).toBeEnabled();
   await page.clock.fastForward(120000);
   await page.reload();
   await expect(page.getByRole("timer")).toHaveText("00:02:00");
   await page.clock.fastForward(30000);
   await expect(page.getByRole("timer")).toHaveText("00:02:30");
-  await page.getByRole("button", { name: "停止并保存学习记录" }).click();
+  await page
+    .getByRole("button", { name: "Stop and save study session" })
+    .click();
   await expect(
-    page.getByRole("button", { name: "开始学习", exact: true }),
+    page.getByRole("button", { name: "Start studying", exact: true }),
   ).toBeEnabled();
   const saved = await page.evaluate(
     (key) => JSON.parse(localStorage.getItem(key)),
@@ -74,22 +86,26 @@ test("calendar splits a midnight session between two dates", async ({
 }) => {
   await page.clock.setSystemTime(new Date("2026-10-26T15:50:00Z"));
   await page.goto("/");
-  await page.getByRole("button", { name: "开始学习", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Start studying", exact: true })
+    .click();
   await expect(
-    page.getByRole("button", { name: "停止并保存学习记录" }),
+    page.getByRole("button", { name: "Stop and save study session" }),
   ).toBeEnabled();
   await page.clock.fastForward(30 * 60000);
-  await page.getByRole("button", { name: "停止并保存学习记录" }).click();
-  await expect(page.locator("#stat-today")).toHaveText("20 分钟");
+  await page
+    .getByRole("button", { name: "Stop and save study session" })
+    .click();
+  await expect(page.locator("#stat-today")).toHaveText("20 min");
   await expect(page.locator("#stat-days")).toHaveText("2");
   await page.locator('[data-day="2026-10-26"]').click();
   await expect(page.locator("#day-summary")).toHaveText(
-    "1 次专注 · 共学习 10 分钟",
+    "1 session · 10 min studied",
   );
   await expect(page.locator(".session-info p")).toHaveText("23:50 — 24:00");
   await page.locator('[data-day="2026-10-27"]').click();
   await expect(page.locator("#day-summary")).toHaveText(
-    "1 次专注 · 共学习 20 分钟",
+    "1 session · 20 min studied",
   );
 });
 
@@ -98,14 +114,14 @@ test("month controls cross year boundaries and today resets selection", async ({
 }) => {
   await page.goto("/");
   for (let i = 0; i < 3; i++)
-    await page.getByRole("button", { name: "下个月" }).click();
-  await expect(page.locator("#month-title")).toHaveText("2027年 1月");
+    await page.getByRole("button", { name: "Next month" }).click();
+  await expect(page.locator("#month-title")).toHaveText("January 2027");
   await page.locator('[data-day="2027-01-01"]').click();
   await expect(page.locator("#day-records")).toContainText(
-    "未来的精彩，等待你来书写",
+    "A little progress is waiting for you",
   );
-  await page.getByRole("button", { name: "回到今天" }).click();
-  await expect(page.locator("#month-title")).toHaveText("2026年 10月");
+  await page.getByRole("button", { name: "Today" }).click();
+  await expect(page.locator("#month-title")).toHaveText("October 2026");
   await expect(page.locator('[data-day="2026-10-26"]')).toHaveAttribute(
     "aria-pressed",
     "true",
@@ -117,26 +133,30 @@ test("export includes recorded daily totals in a spreadsheet-friendly CSV", asyn
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "导出记录" }).click();
-  await expect(page.getByRole("status")).toContainText("还没有学习记录");
-  await page.getByRole("button", { name: "开始学习", exact: true }).click();
+  await page.getByRole("button", { name: "Export records" }).click();
+  await expect(page.getByRole("status")).toContainText("No study records yet");
+  await page
+    .getByRole("button", { name: "Start studying", exact: true })
+    .click();
   await expect(
-    page.getByRole("button", { name: "停止并保存学习记录" }),
+    page.getByRole("button", { name: "Stop and save study session" }),
   ).toBeEnabled();
   await page.clock.fastForward(90000);
-  await page.getByRole("button", { name: "停止并保存学习记录" }).click();
+  await page
+    .getByRole("button", { name: "Stop and save study session" })
+    .click();
   await expect(
-    page.getByRole("button", { name: "开始学习", exact: true }),
+    page.getByRole("button", { name: "Start studying", exact: true }),
   ).toBeEnabled();
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "导出记录" }).click();
+  await page.getByRole("button", { name: "Export records" }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe("拾光-学习记录-2026-10-26.csv");
+  expect(download.suggestedFilename()).toBe("study-journal-2026-10-26.csv");
   const stream = await download.createReadStream();
   let output = "";
   for await (const chunk of stream) output += chunk.toString("utf8");
-  expect(output).toContain("日期,学习秒数,学习时长");
-  expect(output).toContain("2026-10-26,90,1 分钟");
+  expect(output).toContain("Date,Study seconds,Study duration");
+  expect(output).toContain("2026-10-26,90,1 min");
 });
 
 test("corrupt stored data remains intact and shows an actionable error", async ({
@@ -144,9 +164,11 @@ test("corrupt stored data remains intact and shows an actionable error", async (
 }) => {
   await page.addInitScript((key) => localStorage.setItem(key, "{invalid"), key);
   await page.goto("/");
-  await expect(page.getByRole("alert")).toContainText("无法读取或保存学习记录");
+  await expect(page.getByRole("alert")).toContainText(
+    "Study records could not be read or saved",
+  );
   await expect(
-    page.getByRole("button", { name: "开始学习", exact: true }),
+    page.getByRole("button", { name: "Start studying", exact: true }),
   ).toBeDisabled();
   expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBe(
     "{invalid",
@@ -157,9 +179,11 @@ test("a failed save preserves the active session instead of pretending it stoppe
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "开始学习", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Start studying", exact: true })
+    .click();
   await expect(
-    page.getByRole("button", { name: "停止并保存学习记录" }),
+    page.getByRole("button", { name: "Stop and save study session" }),
   ).toBeEnabled();
   await page.clock.fastForward(60000);
   await page.evaluate(() => {
@@ -167,10 +191,12 @@ test("a failed save preserves the active session instead of pretending it stoppe
       throw new DOMException("Quota exceeded", "QuotaExceededError");
     };
   });
-  await page.getByRole("button", { name: "停止并保存学习记录" }).click();
+  await page
+    .getByRole("button", { name: "Stop and save study session" })
+    .click();
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "停止并保存学习记录" }),
+    page.getByRole("button", { name: "Stop and save study session" }),
   ).toBeDisabled();
   expect(
     await page.evaluate(
@@ -189,17 +215,21 @@ test("two tabs share one timer and stopping in either tab updates both", async (
   await other.clock.install({ time: new Date(fixedNow.getTime() - 1000) });
   await other.clock.pauseAt(fixedNow);
   await other.goto("/");
-  await page.getByRole("button", { name: "开始学习", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Start studying", exact: true })
+    .click();
   await expect(
-    other.getByRole("button", { name: "停止并保存学习记录" }),
+    other.getByRole("button", { name: "Stop and save study session" }),
   ).toBeVisible();
   await other.clock.fastForward(60000);
-  await other.getByRole("button", { name: "停止并保存学习记录" }).click();
+  await other
+    .getByRole("button", { name: "Stop and save study session" })
+    .click();
   await expect(
-    page.getByRole("button", { name: "开始学习", exact: true }),
+    page.getByRole("button", { name: "Start studying", exact: true }),
   ).toBeVisible();
   await expect(page.locator(".session-row")).toHaveCount(1);
-  await expect(page.locator("#stat-today")).toHaveText("1 分钟");
+  await expect(page.locator("#stat-today")).toHaveText("1 min");
 });
 
 test("phone layout is usable with no horizontal overflow or script errors", async ({
@@ -214,16 +244,20 @@ test("phone layout is usable with no horizontal overflow or script errors", asyn
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-  await page.getByRole("button", { name: "开始学习", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Start studying", exact: true })
+    .click();
   await expect(
-    page.getByRole("button", { name: "停止并保存学习记录" }),
+    page.getByRole("button", { name: "Stop and save study session" }),
   ).toBeEnabled();
   await page.clock.fastForward(3000);
   await expect(page.getByRole("timer")).toHaveText("00:00:03");
-  await page.getByRole("button", { name: "停止并保存学习记录" }).click();
+  await page
+    .getByRole("button", { name: "Stop and save study session" })
+    .click();
   await page.locator('[data-day="2026-10-25"]').click();
   await expect(page.locator("#day-records")).toContainText(
-    "这一天，还没有学习记录",
+    "No study sessions on this day yet",
   );
   expect(errors).toEqual([]);
 });
